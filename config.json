@@ -1,0 +1,21 @@
+ {
+     "paths": {
+         "migrations": "./upgrade/migrations",
+         "modules_csv": "./modules.csv"
+     },
+     "versions": {
+         "source": "13.0",
+         "destination": "18.0"
+     },
+     "settings": {
+         "has_enterprise": true,
+         "skip_versions": ["tests", "0.0.0"],
+         "extra_logs": false
+     },
+     "replacements": {
+         "from odoo": "# from odoo",
+         "from openerp": "# from openerp"
+     }
+ }
+
+ 
