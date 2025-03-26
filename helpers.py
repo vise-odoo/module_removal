@@ -5,11 +5,7 @@ import glob
 import csv
 from packaging.version import parse
 from mock_classes import (
-    MockModules,
     MockTools,
-    MockModels,
-    MockMany2many,
-    MockImage,
 )
 import json
 
@@ -143,12 +139,7 @@ def analyze_migration_scripts(migrations_path, util_instance, cr):
                 continue
 
             script_conditions = [
-                ('pre-models-update-custom-fields.py', '16.0.1.3'),
-                ('post-10-assets-management.py', 'saas~14.3.1.3'),
-                ('recycle_private_partners.py', 'saas~16.4.1.3'),
-                ('end-01-attrs-views.py', 'saas~16.5.1.3'),
-                ('pre-00-ir_act_server.py', 'saas~16.5.1.3'),
-                ('pre-30-company-rules.py', 'saas~12.4.1.3')
+                # Here scripts can be manually skipped
             ]
 
             if (script_name, base_version) in script_conditions:
@@ -175,21 +166,7 @@ def analyze_migration_scripts(migrations_path, util_instance, cr):
                         'util': util_instance,
                         'cr': cr,
                         'version': str(base_version_parsed),
-                        'IR_MODELS': [],
-                        "Many2many": MockMany2many,
-                        "has_trigram": lambda cr: False,
-                        "has_unaccent": lambda cr: False,
-                        "file_open": lambda path: file_open(path),
-                        "DEFAULT_SEQUENCE": [],
-                        "modules": MockModules,
                         "tools": MockTools,
-                        "models": MockModels(),
-                        "Model": MockModels().Model,
-                        "image": MockImage(),
-                        "__file__": script_path,
-                        "_dashboard_actions": util_instance.helpers._dashboard_actions,
-                        "RefactoringTool": lambda path: None,
-                        "create_categories": lambda cr, category: None,
                     })
                 except Exception as e:
                     print(f"    ERROR executing {script_name}: {e}")
