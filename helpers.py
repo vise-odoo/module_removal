@@ -88,6 +88,26 @@ def remove_unwanted_version_folders(migrations_path, src_version, dest_version):
             except OSError as e:
                 print(f"  ERROR removing {module_folder}: {e}")
 
+def is_module_script(content):
+    target_functions = [
+        "new_module",
+        "merge_module",
+        "force_install_module",
+        "new_module_dep",
+        "remove_module_deps",
+        "module_deps_diff",
+        "module_auto_install",
+        "rename_module",
+        "uninstall_module",
+        "remove_module",
+    ]
+    pattern = r"\b(" + "|".join(re.escape(name) for name in target_functions) + r")\b"
+
+    if re.search(pattern, content):
+        return True
+    else:
+        return False
+
 def analyze_migration_scripts(migrations_path, util_instance, cr):
     """This is the big chunk of the program. It goes through the /base migration scripts in version order,
     and executes each one of them, while simulating the evolution of the installed modules. It also removes
@@ -141,10 +161,12 @@ def analyze_migration_scripts(migrations_path, util_instance, cr):
 
         # Execute each migration script, using the patched functions and mock objects.
         for script_name, script_path in script_files:
-            print(f"  Analyzing script: {script_name}")
-
             with open(script_path, 'r') as script_file:
                 script_content = script_file.read()
+                if not is_module_script(script_content):
+                    # print(f"    Skipping non-module script: {script_name}")
+                    continue
+                print(f"  Analyzing script: {script_name}")
                 script_content += f"\nmigrate(cr, version)\n"
                 try:
                     for old_import, new_import in REPLACEMENTS.items():
