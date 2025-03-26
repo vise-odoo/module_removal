@@ -5,11 +5,7 @@ import glob
 import csv
 from packaging.version import parse
 from mock_classes import (
-    MockModules,
     MockTools,
-    MockModels,
-    MockMany2many,
-    MockImage,
 )
 import json
 
@@ -88,6 +84,26 @@ def remove_unwanted_version_folders(migrations_path, src_version, dest_version):
             except OSError as e:
                 print(f"  ERROR removing {module_folder}: {e}")
 
+def is_module_script(content):
+    target_functions = [
+        "new_module",
+        "merge_module",
+        "force_install_module",
+        "new_module_dep",
+        "remove_module_deps",
+        "module_deps_diff",
+        "module_auto_install",
+        "rename_module",
+        "uninstall_module",
+        "remove_module",
+    ]
+    pattern = r"\b(" + "|".join(re.escape(name) for name in target_functions) + r")\b"
+
+    if re.search(pattern, content):
+        return True
+    else:
+        return False
+
 def analyze_migration_scripts(migrations_path, util_instance, cr):
     """This is the big chunk of the program. It goes through the /base migration scripts in version order,
     and executes each one of them, while simulating the evolution of the installed modules. It also removes
@@ -123,12 +139,7 @@ def analyze_migration_scripts(migrations_path, util_instance, cr):
                 continue
 
             script_conditions = [
-                ('pre-models-update-custom-fields.py', '16.0.1.3'),
-                ('post-10-assets-management.py', 'saas~14.3.1.3'),
-                ('recycle_private_partners.py', 'saas~16.4.1.3'),
-                ('end-01-attrs-views.py', 'saas~16.5.1.3'),
-                ('pre-00-ir_act_server.py', 'saas~16.5.1.3'),
-                ('pre-30-company-rules.py', 'saas~12.4.1.3')
+                # Here scripts can be manually skipped
             ]
 
             if (script_name, base_version) in script_conditions:
@@ -141,10 +152,12 @@ def analyze_migration_scripts(migrations_path, util_instance, cr):
 
         # Execute each migration script, using the patched functions and mock objects.
         for script_name, script_path in script_files:
-            print(f"  Analyzing script: {script_name}")
-
             with open(script_path, 'r') as script_file:
                 script_content = script_file.read()
+                if not is_module_script(script_content):
+                    # print(f"    Skipping non-module script: {script_name}")
+                    continue
+                print(f"  Analyzing script: {script_name}")
                 script_content += f"\nmigrate(cr, version)\n"
                 try:
                     for old_import, new_import in REPLACEMENTS.items():
@@ -153,21 +166,7 @@ def analyze_migration_scripts(migrations_path, util_instance, cr):
                         'util': util_instance,
                         'cr': cr,
                         'version': str(base_version_parsed),
-                        'IR_MODELS': [],
-                        "Many2many": MockMany2many,
-                        "has_trigram": lambda cr: False,
-                        "has_unaccent": lambda cr: False,
-                        "file_open": lambda path: file_open(path),
-                        "DEFAULT_SEQUENCE": [],
-                        "modules": MockModules,
                         "tools": MockTools,
-                        "models": MockModels(),
-                        "Model": MockModels().Model,
-                        "image": MockImage(),
-                        "__file__": script_path,
-                        "_dashboard_actions": util_instance.helpers._dashboard_actions,
-                        "RefactoringTool": lambda path: None,
-                        "create_categories": lambda cr, category: None,
                     })
                 except Exception as e:
                     print(f"    ERROR executing {script_name}: {e}")
